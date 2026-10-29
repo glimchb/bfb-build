@@ -1,0 +1,24 @@
+####################  NOTE ##################################
+# THIS FILE IS A PLACEHOLDER FOR SUSE REPOSITORIES.
+#
+# Fill the file with repositories before building SLES BFB
+# (e.g. from SCC, RMT or SUSE Manager, aarch64 architecture)
+#############################################################
+
+[SLES-16.0-Pool]
+name=SLES-16.0-Pool
+baseurl=<PLACEHOLDER>
+enabled=1
+autorefresh=1
+gpgcheck=1
+gpgkey=<PLACEHOLDER>
+priority=90
+
+[SLES-16.0-Updates]
+name=SLES-16.0-Updates
+baseurl=<PLACEHOLDER>
+enabled=1
+autorefresh=1
+gpgcheck=1
+gpgkey=<PLACEHOLDER>
+priority=90

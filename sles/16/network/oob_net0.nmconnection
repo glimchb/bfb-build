@@ -1,0 +1,12 @@
+[connection]
+id=oob_net0
+type=ethernet
+interface-name=oob_net0
+autoconnect=true
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto
+addr-gen-mode=eui64

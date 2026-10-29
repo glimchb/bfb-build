@@ -1,0 +1,175 @@
+#!/bin/bash -e
+###############################################################################
+#
+# Copyright 2022 NVIDIA Corporation
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in
+# the Software without restriction, including without limitation the rights to
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+# the Software, and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+# IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+###############################################################################
+
+cd ${0%*/*}
+
+# Source common functions
+source ../../common/functions.sh
+
+if [ ! -e Dockerfile ]; then
+	echo "ERROR: Dockerfile is missing."
+	exit 1
+fi
+
+if ! (which wget > /dev/null 2>&1); then
+	echo "wget is required to build BFB"
+	exit 1
+fi
+
+if ! (which docker > /dev/null 2>&1); then
+	echo "docker is required to build BFB"
+	exit 1
+fi
+
+DISTRO="sles"
+DISTRO_VERSION="16"
+DISTRO_KERNEL=${DISTRO_KERNEL:-""}
+ARCH=${ARCH:-"arm64-dpu"}
+DOCA_VERSION="3.5.0"
+BSP_VERSION="4.16.0-14075"
+MLNX_OFED_VERSION="26.07-0.7.7"
+IMAGE_TYPE=${IMAGE_TYPE:-"prod"}
+CUSTOM_VERSION=${CUSTOM_VERSION:-""}
+BASE_URL=${BASE_URL:-"https://linux.mellanox.com/public/repo"}
+LEAVE_CONTAINER=${LEAVE_CONTAINER:-"no"}
+SLES_BASE_IMAGE=${SLES_BASE_IMAGE:-"registry.suse.com/bci/bci-base:16.0"}
+# DOCA/OFED (DKMS kernel modules, userspace) come from the SLES host repository.
+DOCA_REPO_URL=${DOCA_REPO_URL:-"${BASE_URL}/doca/${DOCA_VERSION}/${DISTRO}${DISTRO_VERSION}/arm64-sbsa"}
+# NVIDIA does not publish arm64-dpu DOCA packages for SLES. The distro-neutral
+# BlueField platform packages (boot images, bfscripts, bf-release, firmware)
+# are taken from the RHEL DPU repository instead.
+DOCA_DPU_DISTRO=${DOCA_DPU_DISTRO:-"rhel9.6"}
+DOCA_DPU_URL=${DOCA_DPU_URL:-"${BASE_URL}/doca/${DOCA_VERSION}-${BSP_VERSION}${RELEASE_DIR_SUFFIX}/${DOCA_DPU_DISTRO}/${ARCH}"}
+
+WDIR=/tmp/${DISTRO}${DISTRO_VERSION}${DISTRO_KERNEL}.$$
+
+if [ ! -f repos/sles.repo ]; then
+    echo "ERROR: repos/sles.repo is required for SLES builds."
+    exit 1
+fi
+
+if grep -q "baseurl=<PLACEHOLDER>" repos/sles.repo; then
+    echo "ERROR: SUSE repository URLs need to be filled in repos/sles.repo"
+    exit 1
+fi
+
+mkdir -p $WDIR
+
+echo "Downloading mlxbf-bootimages..."
+case "$IMAGE_TYPE" in
+	prod)
+		bootimages="mlxbf-bootimages-signed-${BSP_VERSION}.aarch64.rpm"
+		;;
+	dev)
+		bootimages="mlxbf-bootimages-devsigned-${BSP_VERSION}.aarch64.rpm"
+		;;
+	unsigned)
+		bootimages="mlxbf-bootimages-${BSP_VERSION}.aarch64.rpm"
+		;;
+esac
+
+mkdir -p $WDIR/bootimages
+wget --no-verbose -P $WDIR/bootimages ${DOCA_DPU_URL}/$bootimages
+
+echo "Downloading BlueField packages from ${DOCA_DPU_URL}..."
+BF_RPMS_PATTERN="^(mlxbf-bfscripts|mlxbf-bootctl|bf-release|mlnx-fw-updater-signed|bf2-bmc-fw-signed|bf3-bmc-fw-signed|bf3-bmc-gi-signed|bf3-bmc-nic-fw-[a-z0-9-]+|bf2-cec-fw-signed|bf3-cec-fw-signed)-[0-9].*rpm$"
+download_files_by_pattern "${DOCA_DPU_URL}" "$BF_RPMS_PATTERN" "$WDIR/bf-rpms"
+if ! (/bin/ls $WDIR/bf-rpms/mlxbf-bfscripts-*.rpm > /dev/null 2>&1); then
+	echo "ERROR: Failed to download BlueField packages from ${DOCA_DPU_URL}"
+	exit 1
+fi
+
+cp -a \
+	Dockerfile \
+	create_bfb \
+	install.sh \
+	repos \
+	10-mlx-console-messages.conf \
+	network \
+	../../common/tools/qemu-aarch64-static \
+	$WDIR
+
+if [ -d install.env ]; then
+	cp -a install.env \
+		$WDIR
+else
+	cp -a ../../common/install.env \
+		$WDIR
+fi
+
+cd $WDIR
+
+cat > $WDIR/repos/doca.repo << EOF
+[doca]
+name=NVIDIA DOCA repository
+baseurl=${DOCA_REPO_URL}/
+enabled=1
+autorefresh=1
+gpgcheck=1
+gpgkey=${DOCA_REPO_URL}/RPM-GPG-KEY-doca
+priority=10
+EOF
+
+docker_image=bfb_runtime_${DISTRO,,}${DISTRO_VERSION,,}
+
+docker rm -f BlueField_OS_${DISTRO}_${DISTRO_VERSION} 2> /dev/null || true
+
+sed -i -e "s/@IMAGE_TYPE@/$IMAGE_TYPE/g;s/@CUSTOM_VERSION@/$CUSTOM_VERSION/g" Dockerfile
+
+docker build -t ${docker_image} \
+	--build-arg BASE_URL=$BASE_URL \
+	--build-arg DOCA_VERSION=$DOCA_VERSION \
+	--build-arg BSP_VERSION=$BSP_VERSION \
+	--build-arg DISTRO=$DISTRO \
+	--build-arg DISTRO_VERSION=$DISTRO_VERSION \
+	--build-arg DISTRO_KERNEL=$DISTRO_KERNEL \
+	--build-arg SLES_BASE_IMAGE=$SLES_BASE_IMAGE \
+	--build-arg SLES_TAG=${DISTRO}-${DISTRO_VERSION} \
+	-f Dockerfile .
+
+DOCKER_RUN_PARAMS="--privileged -e container=docker \
+	-v $PWD:/workspace \
+	--name BlueField_OS_${DISTRO}_${DISTRO_VERSION}${DISTRO_KERNEL} \
+	--mount type=bind,source=/dev,target=/dev \
+	--mount type=bind,source=/sys,target=/sys \
+	--mount type=bind,source=/proc,target=/proc"
+
+if [ "X${LEAVE_CONTAINER}" == "Xyes" ]; then
+	DOCKER_RUN_PARAMS="-d -it ${DOCKER_RUN_PARAMS}"
+	docker_id=$(docker run ${DOCKER_RUN_PARAMS} \
+		${docker_image} /bin/bash)
+	docker exec -it ${docker_id} /bin/bash -x /root/workspace/create_bfb
+else
+	DOCKER_RUN_PARAMS="-t --rm ${DOCKER_RUN_PARAMS}"
+	docker run ${DOCKER_RUN_PARAMS} \
+		${docker_image} /bin/bash -x /root/workspace/create_bfb
+fi
+
+readlink -f *.bfb
+
+echo "Default root password is: sles"
+
+if [ "X${LEAVE_CONTAINER}" == "Xyes" ]; then
+	echo "Container name: BlueField_OS_${DISTRO}_${DISTRO_VERSION}${DISTRO_KERNEL} id: ${docker_id}"
+fi
