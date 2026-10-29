@@ -13,6 +13,9 @@ ADD 10-mlx-console-messages.conf /etc/sysctl.d/
 ADD install.env /root/workspace/install.env/
 ADD install.sh create_bfb /root/workspace/
 ADD repos/ /etc/zypp/repos.d/
+# Build-time only CA certificates (EXTRA_CA_CERTS), removed at the end
+ADD ca-certs/ /etc/pki/trust/anchors/
+RUN update-ca-certificates || true
 
 RUN rpm -ihv --force bootimages/mlxbf-bootimages-*.aarch64.rpm || true
 
@@ -177,3 +180,6 @@ RUN systemctl enable bfrtc-poll.timer || true
 # Host side tools, not used on the DPU
 RUN systemctl disable rshim || true
 RUN systemctl disable opensmd || true
+
+# Remove build-time only CA certificates
+RUN rm -f /etc/pki/trust/anchors/bfb-build-* && (update-ca-certificates || true)

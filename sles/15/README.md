@@ -4,8 +4,8 @@
 BlueField DPU (`arm64-dpu`). This BFB combines:
 
 - The SUSE kernel (`kernel-default`) and OS packages from the SUSE repositories.
-  The base image defaults to the latest service pack (`bci-base:15.7`), override with
-  `SLES_BASE_IMAGE`, e.g. `SLES_BASE_IMAGE=registry.suse.com/bci/bci-base:15.6` for SP6.
+  The base image is `bci-base:15.6` (SP6), override with `SLES_BASE_IMAGE`, e.g.
+  `SLES_BASE_IMAGE=registry.suse.com/bci/bci-base:15.7`, together with matching repositories.
 - DOCA/OFED from the SLES host repository (`DOCA_REPO_URL`, default
   `https://linux.mellanox.com/public/repo/doca/<DOCA_VERSION>/sles15/arm64-sbsa`):
   `mlnx-ofa_kernel-dkms` and `kernel-mft-dkms` are built with DKMS against the SUSE
@@ -34,15 +34,15 @@ BlueField DPU (`arm64-dpu`). This BFB combines:
 ## Repositories
 
 #### sles.repo
-The `repos/sles.repo` file is a placeholder for the SUSE repositories (aarch64):
-Basesystem, Server Applications and Development Tools modules (Pool and Updates)
-of the service pack matching `SLES_BASE_IMAGE`.
-They are available from SCC, RMT or SUSE Manager for a registered system.
+By default `repos/sles.repo` uses the openSUSE Leap 15.6 (aarch64) repositories, which
+need no registration, so `./bfb-build sles 15` works out of the box. Leap only provides
+the OS packages; the result is not a supported SLES image.
 
-Each `baseurl` entry in the `repos/sles.repo` file should be replaced with the
-appropriate SUSE repository URL. Same goes for the `gpgkey` entries.
+For a SLES build, replace the entries in `repos/sles.repo` with the SLES 15 SP6 Basesystem, Server Applications and Development Tools
+module repositories (Pool and Updates) for aarch64
+from SCC, RMT or SUSE Manager.
 
-**The BFB image CANNOT be built without the SUSE repositories.**
-
-Please make sure to edit the `repos/sles.repo` file accordingly before executing
-the `./bfb-build sles 15` command.
+#### Corporate proxy
+When HTTPS traffic goes through a TLS intercepting proxy, pass its CA certificates with
+`EXTRA_CA_CERTS=<file or directory>`. They are trusted only while building the image and
+are not included in the BFB.

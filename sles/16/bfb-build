@@ -94,7 +94,8 @@ wget --no-verbose -P $WDIR/bootimages ${DOCA_DPU_URL}/$bootimages
 
 echo "Downloading BlueField packages from ${DOCA_DPU_URL}..."
 BF_RPMS_PATTERN="^(mlxbf-bfscripts|mlxbf-bootctl|bf-release|mlnx-fw-updater-signed|bf2-bmc-fw-signed|bf3-bmc-fw-signed|bf3-bmc-gi-signed|bf3-bmc-nic-fw-[a-z0-9-]+|bf2-cec-fw-signed|bf3-cec-fw-signed)-[0-9].*rpm$"
-download_files_by_pattern "${DOCA_DPU_URL}" "$BF_RPMS_PATTERN" "$WDIR/bf-rpms"
+# Called in a || list: ((download_count++)) returns 1 on the first file under bash -e
+download_files_by_pattern "${DOCA_DPU_URL}" "$BF_RPMS_PATTERN" "$WDIR/bf-rpms" || true
 if ! (/bin/ls $WDIR/bf-rpms/mlxbf-bfscripts-*.rpm > /dev/null 2>&1); then
 	echo "ERROR: Failed to download BlueField packages from ${DOCA_DPU_URL}"
 	exit 1
@@ -109,6 +110,15 @@ cp -a \
 	network \
 	../../common/tools/qemu-aarch64-static \
 	$WDIR
+
+# Optional CA certificates trusted only while building the image, e.g. for a
+# TLS intercepting proxy: EXTRA_CA_CERTS=<file or directory with *.crt/*.pem>
+mkdir -p $WDIR/ca-certs
+if [ -n "$EXTRA_CA_CERTS" ]; then
+	for cert in $(find -L $EXTRA_CA_CERTS -type f \( -name '*.crt' -o -name '*.pem' \)); do
+		cp -L $cert $WDIR/ca-certs/bfb-build-$(basename ${cert%.*}).pem
+	done
+fi
 
 if [ -d install.env ]; then
 	cp -a install.env \

@@ -33,14 +33,14 @@ BlueField DPU (`arm64-dpu`). This BFB combines:
 ## Repositories
 
 #### sles.repo
-The `repos/sles.repo` file is a placeholder for the SUSE repositories (aarch64):
-the SLES 16.0 product repositories (Pool and Updates).
-They are available from SCC, RMT or SUSE Manager for a registered system.
+By default `repos/sles.repo` uses the openSUSE Leap 16.0 (aarch64) repositories, which
+need no registration, so `./bfb-build sles 16` works out of the box. Leap only provides
+the OS packages; the result is not a supported SLES image.
 
-Each `baseurl` entry in the `repos/sles.repo` file should be replaced with the
-appropriate SUSE repository URL. Same goes for the `gpgkey` entries.
+For a SLES build, replace the entries in `repos/sles.repo` with the SLES 16.0 product repositories (Pool and Updates) for aarch64
+from SCC, RMT or SUSE Manager.
 
-**The BFB image CANNOT be built without the SUSE repositories.**
-
-Please make sure to edit the `repos/sles.repo` file accordingly before executing
-the `./bfb-build sles 16` command.
+#### Corporate proxy
+When HTTPS traffic goes through a TLS intercepting proxy, pass its CA certificates with
+`EXTRA_CA_CERTS=<file or directory>`. They are trusted only while building the image and
+are not included in the BFB.

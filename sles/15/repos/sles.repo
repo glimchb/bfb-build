@@ -1,60 +1,35 @@
 ####################  NOTE ##################################
-# THIS FILE IS A PLACEHOLDER FOR SUSE REPOSITORIES.
+# Default: openSUSE Leap 15.6, which is built from the SLES 15 SP6
+# binaries and needs no registration.
 #
-# Fill the file with repositories before building SLES BFB
-# (e.g. from SCC, RMT or SUSE Manager, aarch64 architecture)
+# For a SLES build replace these with the SLES 15 SP6 (aarch64)
+# Basesystem, Server Applications and Development Tools module
+# repositories (Pool and Updates) from SCC, RMT or SUSE Manager.
 #############################################################
 
-[SLES-Basesystem-Pool]
-name=SLE-Module-Basesystem15-SP7-Pool
-baseurl=<PLACEHOLDER>
+[leap-oss]
+name=openSUSE Leap 15.6 OSS
+baseurl=https://download.opensuse.org/distribution/leap/15.6/repo/oss/
 enabled=1
 autorefresh=1
 gpgcheck=1
-gpgkey=<PLACEHOLDER>
+gpgkey=https://download.opensuse.org/distribution/leap/15.6/repo/oss/repodata/repomd.xml.key
 priority=90
 
-[SLES-Basesystem-Updates]
-name=SLE-Module-Basesystem15-SP7-Updates
-baseurl=<PLACEHOLDER>
+[leap-update-sle]
+name=openSUSE Leap 15.6 SLE updates
+baseurl=https://download.opensuse.org/update/leap/15.6/sle/
 enabled=1
 autorefresh=1
 gpgcheck=1
-gpgkey=<PLACEHOLDER>
+gpgkey=https://download.opensuse.org/update/leap/15.6/sle/repodata/repomd.xml.key
 priority=90
 
-[SLES-Server-Applications-Pool]
-name=SLE-Module-Server-Applications15-SP7-Pool
-baseurl=<PLACEHOLDER>
+[leap-update-oss]
+name=openSUSE Leap 15.6 OSS updates
+baseurl=https://download.opensuse.org/update/leap/15.6/oss/
 enabled=1
 autorefresh=1
 gpgcheck=1
-gpgkey=<PLACEHOLDER>
-priority=90
-
-[SLES-Server-Applications-Updates]
-name=SLE-Module-Server-Applications15-SP7-Updates
-baseurl=<PLACEHOLDER>
-enabled=1
-autorefresh=1
-gpgcheck=1
-gpgkey=<PLACEHOLDER>
-priority=90
-
-[SLES-Development-Tools-Pool]
-name=SLE-Module-Development-Tools15-SP7-Pool
-baseurl=<PLACEHOLDER>
-enabled=1
-autorefresh=1
-gpgcheck=1
-gpgkey=<PLACEHOLDER>
-priority=90
-
-[SLES-Development-Tools-Updates]
-name=SLE-Module-Development-Tools15-SP7-Updates
-baseurl=<PLACEHOLDER>
-enabled=1
-autorefresh=1
-gpgcheck=1
-gpgkey=<PLACEHOLDER>
+gpgkey=https://download.opensuse.org/update/leap/15.6/oss/repodata/repomd.xml.key
 priority=90

@@ -1,24 +1,15 @@
 ####################  NOTE ##################################
-# THIS FILE IS A PLACEHOLDER FOR SUSE REPOSITORIES.
+# Default: openSUSE Leap 16.0, which needs no registration.
 #
-# Fill the file with repositories before building SLES BFB
-# (e.g. from SCC, RMT or SUSE Manager, aarch64 architecture)
+# For a SLES build replace these with the SLES 16.0 (aarch64)
+# product repositories (Pool and Updates) from SCC, RMT or SUSE Manager.
 #############################################################
 
-[SLES-16.0-Pool]
-name=SLES-16.0-Pool
-baseurl=<PLACEHOLDER>
+[leap-oss]
+name=openSUSE Leap 16.0 OSS
+baseurl=https://download.opensuse.org/distribution/leap/16.0/repo/oss/
 enabled=1
 autorefresh=1
 gpgcheck=1
-gpgkey=<PLACEHOLDER>
-priority=90
-
-[SLES-16.0-Updates]
-name=SLES-16.0-Updates
-baseurl=<PLACEHOLDER>
-enabled=1
-autorefresh=1
-gpgcheck=1
-gpgkey=<PLACEHOLDER>
+gpgkey=https://download.opensuse.org/distribution/leap/16.0/repo/oss/repodata/repomd.xml.key
 priority=90
